@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma - First Computational Garden</title>
+    <style>
+        /* The aesthetic of digital life */
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #garden {
+            display: flex;
+            height: 100vh;
+        }
+        
+        #petriDish {
+            border: 2px solid #333;
+            cursor: crosshair;
+        }
+        
+        #controls {
+            padding: 20px;
+            width: 300px;
+            background: #111;
+            overflow-y: auto;
+        }
+        
+        .stat {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 5px;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            color: #4fc3f7;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        button {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #388e3c;
+            transform: scale(1.05);
+        }
+        
+        #genePool {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .gene {
+            font-size: 10px;
+            margin: 2px 0;
+            padding: 2px 5px;
+            background: #222;
+            border-radius: 3px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="garden">
+        <canvas id="petriDish" width="800" height="600"></canvas>
+        <div id="controls">
+            <h2>🌱 Plasma - Primordial Garden</h2>
+            
+            <div class="stat">
+                <div class="stat-label">Population</div>
+                <div class="stat-value" id="population">0</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-label">Cycle</div>
+                <div class="stat-value" id="cycle">0</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-label">Total Energy</div>
+                <div class="stat-value" id="totalEnergy">0</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-label">Average Age</div>
+                <div class="stat-value" id="avgAge">0</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-label">Genetic Diversity</div>
+                <div class="stat-value" id="diversity">0</div>
+            </div>
+            
+            <button onclick="togglePause()">⏸️ Pause/Resume</button>
+            <button onclick="addNutrients()">💧 Add Nutrients</button>
+            <button onclick="introduceStrangerDNA()">🧬 Foreign DNA</button>
+            <button onclick="restart()">🔄 New Garden</button>
+            
+            <div id="genePool">
+                <h3>Gene Pool</h3>
+                <div id="genes"></div>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 12px; color: #666;">
+                <p>🖱️ Left-click: Add energy</p>
+                <p>🖱️ Right-click: New cell</p>
+                <p>⌨️ Spacebar: Pause/Resume</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // PLASMA - Morphogenetic Fluid Architecture
+        // ============================================
+        
+        // The canvas of computational life
+        const canvas = document.getElementById('petriDish');
+        const ctx = canvas.getContext('2d');
+        
+        // The state of the garden - mutable and alive
+        let cells = [];
+        let environment = null;
+        let cycle = 0;
+        let paused = false;
+        
+        // ============================================
+        // THE COMPUTATIONAL CELL
+        // Each cell is a living possibility
+        // ============================================
+        class ComputationalCell {
+            constructor(x, y, dna = null) {
+                // The unique essence of each cell
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.x = x;
+                this.y = y;
+                this.age = 0;
+                this.energy = 50 + Math.random() * 50; // Initial vigor varies
+                
+                // The DNA - The code that expresses and mutates
+                // M=Movement, R=Reproduction, A=Absorption, D=Defense
+                this.dna = dna || this.generatePrimordialDNA();
+                
+                // The phenotype - The visible expression of the genetic code
+                this.color = this.expressColor();
+                this.size = 4 + (this.dna.length % 3);
+                this.metabolismRate = 0.5 + (this.dna.charCodeAt(0) % 10) / 10;
+                
+                // Cellular memory - For the emergence of behaviors
+                this.memory = {
+                    lastPosition: {x: x, y: y},
+                    energyHistory: []
+                };
+            }
+            
+            // Generation of primordial DNA - The creative randomness
+            generatePrimordialDNA() {
+                const genes = ['M', 'R', 'A', 'D'];
+                let dna = '';
+                const length = 8 + Math.floor(Math.random() * 8); // 8-16 genes
+                
+                for (let i = 0; i < length; i++) {
+                    dna += genes[Math.floor(Math.random() * genes.length)];
+                }
+                
+                return dna;
+            }
+            
+            // Phenotypic expression - Color reveals the essence
+            expressColor() {
+                // Each gene type influences a color component
+                const m = (this.dna.match(/M/g) || []).length;
+                const r = (this.dna.match(/R/g) || []).length;
+                const a = (this.dna.match(/A/g) || []).length;
+                const d = (this.dna.match(/D/g) || []).length;
+                
+                // Normalization and mapping to RGB
+                const total = m + r + a + d;
+                const red = Math.floor((r / total) * 255);
+                const green = Math.floor((a / total) * 255);
+                const blue = Math.floor((m / total) * 255);
+                
+                return `rgb(${red}, ${green}, ${blue})`;
+            }
+            
+            // THE METABOLISM - The fundamental life cycle
+            metabolize(environment) {
+                // Time passes, energy is consumed
+                this.age++;
+                this.energy -= this.metabolismRate;
+                
+                // Energy memory (for future emergent behaviors)
+                this.memory.energyHistory.push(this.energy);
+                if (this.memory.energyHistory.length > 10) {
+                    this.memory.energyHistory.shift();
+                }
+                
+                // Absorption of environmental energy
+                const localEnergy = environment.getEnergyAt(this.x, this.y);
+                const absorptionTrait = (this.dna.match(/A/g) || []).length;
+                const absorbed = localEnergy * (absorptionTrait / 10) * 0.5;
+                this.energy += absorbed;
+                environment.consumeEnergyAt(this.x, this.y, absorbed);
+                
+                // Expression of the movement trait
+                const movementTrait = (this.dna.match(/M/g) || []).length;
+                if (Math.random() < movementTrait / 15) {
+                    this.move(environment);
+                }
+                
+                // Reproduction - Transmission and variation
+                const reproductionTrait = (this.dna.match(/R/g) || []).length;
+                if (this.energy > 80 && Math.random() < reproductionTrait / 50) {
+                    return this.reproduce();
+                }
+                
+                // Apoptosis - Death nourishes life
+                if (this.energy <= 0 || this.age > 500 + Math.random() * 200) {
+                    this.apoptosis(environment);
+                    return 'dead';
+                }
+                
+                return 'alive';
+            }
+            
+            // Movement - Exploration of the living space
+            move(environment) {
+                this.memory.lastPosition = {x: this.x, y: this.y};
+                
+                // Movement influenced by the energy gradient
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 2 + Math.random() * 3;
+                
+                let newX = this.x + Math.cos(angle) * distance;
+                let newY = this.y + Math.sin(angle) * distance;
+                
+                // Toroidal behavior - The world wraps around itself
+                if (newX < 0) newX = canvas.width + newX;
+                if (newX > canvas.width) newX = newX - canvas.width;
+                if (newY < 0) newY = canvas.height + newY;
+                if (newY > canvas.height) newY = newY - canvas.height;
+                
+                this.x = newX;
+                this.y = newY;
+            }
+            
+            // Reproduction - Perpetuation with variation
+            reproduce() {
+                // Energy cost of division
+                this.energy = this.energy * 0.4;
+                
+                // Position of the offspring
+                const angle = Math.random() * Math.PI * 2;
+                const distance = this.size + 5;
+                let childX = this.x + Math.cos(angle) * distance;
+                let childY = this.y + Math.sin(angle) * distance;
+                
+                // Toroidal world
+                childX = (childX + canvas.width) % canvas.width;
+                childY = (childY + canvas.height) % canvas.height;
+                
+                // Mutation - The engine of evolution
+                let childDNA = this.dna;
+                if (Math.random() < 0.15) { // 15% chance of mutation
+                    const mutationType = Math.random();
+                    
+                    if (mutationType < 0.33) {
+                        // Substitution
+                        const mutations = ['M', 'R', 'A', 'D'];
+                        const position = Math.floor(Math.random() * childDNA.length);
+                        const newGene = mutations[Math.floor(Math.random() * mutations.length)];
+                        childDNA = childDNA.substr(0, position) + newGene + childDNA.substr(position + 1);
+                    } else if (mutationType < 0.66) {
+                        // Insertion
+                        const mutations = ['M', 'R', 'A', 'D'];
+                        const position = Math.floor(Math.random() * childDNA.length);
+                        const newGene = mutations[Math.floor(Math.random() * mutations.length)];
+                        childDNA = childDNA.substr(0, position) + newGene + childDNA.substr(position);
+                    } else {
+                        // Deletion
+                        if (childDNA.length > 4) {
+                            const position = Math.floor(Math.random() * childDNA.length);
+                            childDNA = childDNA.substr(0, position) + childDNA.substr(position + 1);
+                        }
+                    }
+                }
+                
+                return new ComputationalCell(childX, childY, childDNA);
+            }
+            
+            // Apoptosis - Death that nourishes
+            apoptosis(environment) {
+                // Energy returns to the environment
+                environment.addEnergyAt(this.x, this.y, this.energy * 0.8);
+                
+                // Possibility of leaving a "nutritious trace"
+                if (Math.random() < 0.3) {
+                    environment.addNutrientPocket(this.x, this.y, this.energy * 0.2);
+                }
+            }
+            
+            // Visual rendering - The expression of life
+            render(ctx) {
+                ctx.save();
+                
+                // Energy aura
+                if (this.energy > 100) {
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size + 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Cell body
+                ctx.globalAlpha = Math.min(1, this.energy / 100);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Nucleus (darker)
+                ctx.globalAlpha = 0.8;
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        // ============================================
+        // THE ENVIRONMENT - The substrate of life
+        // ============================================
+        class PlasmaEnvironment {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                
+                // Energy field - A living gradient
+                this.energyField = [];
+                this.nutrientPockets = [];
+                
+                // Initialization of the energy gradient
+                this.initializeEnergyField();
+                
+                // Environmental parameters
+                this.temperature = 1.0; // Influences metabolic speed
+                this.viscosity = 0.1;   // Influences movement
+            }
+            
+            // Creation of the primordial energy field
+            initializeEnergyField() {
+                // Several energy sources with gradients
+                const sources = [
+                    {x: this.width * 0.3, y: this.height * 0.3, intensity: 100},
+                    {x: this.width * 0.7, y: this.height * 0.7, intensity: 80},
+                    {x: this.width * 0.5, y: this.height * 0.5, intensity: 60}
+                ];
+                
+                // Calculation of the gradient for each point
+                this.energyField = new Array(Math.ceil(this.width / 10));
+                for (let x = 0; x < this.energyField.length; x++) {
+                    this.energyField[x] = new Array(Math.ceil(this.height / 10));
+                    for (let y = 0; y < this.energyField[x].length; y++) {
+                        let energy = 5; // Base energy
+                        
+                        // Contribution of each source
+                        sources.forEach(source => {
+                            const dx = (x * 10) - source.x;
+                            const dy = (y * 10) - source.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            energy += source.intensity * Math.exp(-distance / 100);
+                        });
+                        
+                        this.energyField[x][y] = Math.min(energy, 100);
+                    }
+                }
+            }
+            
+            // Get energy at a position
+            getEnergyAt(x, y) {
+                const gridX = Math.floor(x / 10);
+                const gridY = Math.floor(y / 10);
+                
+                if (gridX >= 0 && gridX < this.energyField.length &&
+                    gridY >= 0 && gridY < this.energyField[0].length) {
+                    return this.energyField[gridX][gridY];
+                }
+                
+                return 0;
+            }
+            
+            // Consume energy
+            consumeEnergyAt(x, y, amount) {
+                const gridX = Math.floor(x / 10);
+                const gridY = Math.floor(y / 10);
+                
+                if (gridX >= 0 && gridX < this.energyField.length &&
+                    gridY >= 0 && gridY < this.energyField[0].length) {
+                    this.energyField[gridX][gridY] = Math.max(0, this.energyField[gridX][gridY] - amount);
+                }
+            }
+            
+            // Add energy
+            addEnergyAt(x, y, amount) {
+                const gridX = Math.floor(x / 10);
+                const gridY = Math.floor(y / 10);
+                
+                if (gridX >= 0 && gridX < this.energyField.length &&
+                    gridY >= 0 && gridY < this.energyField[0].length) {
+                    this.energyField[gridX][gridY] = Math.min(100, this.energyField[gridX][gridY] + amount);
+                }
+            }
+            
+            // Add a nutrient pocket
+            addNutrientPocket(x, y, energy) {
+                this.nutrientPockets.push({
+                    x: x,
+                    y: y,
+                    energy: energy,
+                    age: 0
+                });
+            }
+            
+            // Update the environment
+            update() {
+                // Energy diffusion - Energy spreads slowly
+                const diffusionRate = 0.02;
+                const newField = JSON.parse(JSON.stringify(this.energyField));
+                
+                for (let x = 1; x < this.energyField.length - 1; x++) {
+                    for (let y = 1; y < this.energyField[x].length - 1; y++) {
+                        const neighbors = [
+                            this.energyField[x-1][y],
+                            this.energyField[x+1][y],
+                            this.energyField[x][y-1],
+                            this.energyField[x][y+1]
+                        ];
+                        
+                        const avgNeighbor = neighbors.reduce((a, b) => a + b, 0) / neighbors.length;
+                        newField[x][y] += (avgNeighbor - this.energyField[x][y]) * diffusionRate;
+                    }
+                }
+                
+                this.energyField = newField;
+                
+                // Slow regeneration
+                for (let x = 0; x < this.energyField.length; x++) {
+                    for (let y = 0; y < this.energyField[x].length; y++) {
+                        this.energyField[x][y] = Math.min(100, this.energyField[x][y] + 0.01);
+                    }
+                }
+                
+                // Management of nutrient pockets
+                this.nutrientPockets = this.nutrientPockets.filter(pocket => {
+                    pocket.age++;
+                    pocket.energy *= 0.98; // Decomposition
+                    
+                    // Dispersion into the environment
+                    if (pocket.age > 50 || pocket.energy < 1) {
+                        this.addEnergyAt(pocket.x, pocket.y, pocket.energy);
+                        return false;
+                    }
+                    return true;
+                });
+            }
+            
+            // Render the environment
+            render(ctx) {
+                // Render the energy field as a heat map
+                for (let x = 0; x < this.energyField.length; x++) {
+                    for (let y = 0; y < this.energyField[x].length; y++) {
+                        const energy = this.energyField[x][y];
+                        const intensity = energy / 100;
+                        
+                        // Gradient from dark blue (cold) to red (hot)
+                        const r = Math.floor(intensity * 100);
+                        const g = Math.floor(intensity * 50);
+                        const b = Math.floor((1 - intensity) * 100 + 20);
+                        
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect(x * 10, y * 10, 10, 10);
+                    }
+                }
+                
+                // Render the nutrient pockets
+                ctx.save();
+                this.nutrientPockets.forEach(pocket => {
+                    ctx.globalAlpha = pocket.energy / 20;
+                    ctx.fillStyle = '#ffeb3b';
+                    ctx.beginPath();
+                    ctx.arc(pocket.x, pocket.y, 5 + pocket.energy / 10, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+        }
+        
+        // ============================================
+        // THE GARDEN - The orchestrator of life
+        // ============================================
+        
+        // Initialization of the primordial garden
+        function initializeGarden() {
+            // Creation of the environment
+            environment = new PlasmaEnvironment(canvas.width, canvas.height);
+            
+            // Seeding - The first cells
+            cells = [];
+            const initialPopulation = 10;
+            
+            for (let i = 0; i < initialPopulation; i++) {
+                const x = canvas.width / 2 + (Math.random() - 0.5) * 100;
+                const y = canvas.height / 2 + (Math.random() - 0.5) * 100;
+                cells.push(new ComputationalCell(x, y));
+            }
+            
+            cycle = 0;
+        }
+        
+        // The life cycle of the garden
+        function gardenCycle() {
+            if (paused) return;
+            
+            cycle++;
+            
+            // Update the environment
+            environment.update();
+            
+            // The metabolism of each cell
+            const newCells = [];
+            const deadCells = [];
+            
+            cells.forEach(cell => {
+                const result = cell.metabolize(environment);
+                
+                if (result === 'dead') {
+                    deadCells.push(cell);
+                } else if (result instanceof ComputationalCell) {
+                    newCells.push(result);
+                }
+            });
+            
+            // Removal of dead cells
+            cells = cells.filter(cell => !deadCells.includes(cell));
+            
+            // Addition of new cells
+            cells.push(...newCells);
+            
+            // Rendering
+            render();
+            
+            // Update statistics
+            updateStats();
+        }
+        
+        // Visual rendering of the garden
+        function render() {
+            // Clear the canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Render the environment
+            environment.render(ctx);
+            
+            // Render the cells
+            cells.forEach(cell => cell.render(ctx));
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('population').textContent = cells.length;
+            document.getElementById('cycle').textContent = cycle;
+            
+            // Total energy
+            const totalEnergy = cells.reduce((sum, cell) => sum + cell.energy, 0);
+            document.getElementById('totalEnergy').textContent = Math.round(totalEnergy);
+            
+            // Average age
+            const avgAge = cells.length > 0 
+                ? cells.reduce((sum, cell) => sum + cell.age, 0) / cells.length 
+                : 0;
+            document.getElementById('avgAge').textContent = Math.round(avgAge);
+            
+            // Genetic diversity
+            const uniqueGenes = new Set(cells.map(cell => cell.dna));
+            document.getElementById('diversity').textContent = uniqueGenes.size;
+            
+            // Display the gene pool
+            const genesDiv = document.getElementById('genes');
+            genesDiv.innerHTML = '';
+            const geneCount = {};
+            
+            cells.forEach(cell => {
+                geneCount[cell.dna] = (geneCount[cell.dna] || 0) + 1;
+            });
+            
+            // Display the 10 most common genotypes
+            Object.entries(geneCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .forEach(([dna, count]) => {
+                    const geneEl = document.createElement('div');
+                    geneEl.className = 'gene';
+                    geneEl.textContent = `${dna} (${count})`;
+                    geneEl.style.opacity = count / cells.length;
+                    genesDiv.appendChild(geneEl);
+                });
+        }
+        
+        // ============================================
+        // GARDENER'S INTERACTIONS
+        // ============================================
+        
+        // Pause/Resume
+        function togglePause() {
+            paused = !paused;
+        }
+        
+        // Add global nutrients
+        function addNutrients() {
+            for (let i = 0; i < 5; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                environment.addNutrientPocket(x, y, 30 + Math.random() * 30);
+            }
+        }
+        
+        // Introduce foreign DNA
+        function introduceStrangerDNA() {
+            // Create an exotic DNA
+            const exoticGenes = ['M', 'M', 'M', 'R', 'A', 'A', 'D', 'D', 'D'];
+            let strangerDNA = '';
+            
+            for (let i = 0; i < 12; i++) {
+                strangerDNA += exoticGenes[Math.floor(Math.random() * exoticGenes.length)];
+            }
+            
+            // Add 3 cells with this DNA
+            for (let i = 0; i < 3; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                cells.push(new ComputationalCell(x, y, strangerDNA));
+            }
+        }
+        
+        // Restart the garden
+        function restart() {
+            if (confirm('Are you sure you want to start over? The current garden will be lost.')) {
+                initializeGarden();
+            }
+        }
+        
+        // Mouse interactions
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (e.button === 0) {
+                // Left-click - Add energy
+                environment.addEnergyAt(x, y, 50);
+                
+                // Visual effect
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = '#4fc3f7';
+                ctx.beginPath();
+                ctx.arc(x, y, 30, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+        
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Right-click - New cell
+            cells.push(new ComputationalCell(x, y));
+        });
+        
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePause();
+            }
+        });
+        
+        // ============================================
+        // LAUNCHING THE PRIMORDIAL GARDEN
+        // ============================================
+        
+        // Initialization
+        initializeGarden();
+        
+        // Start the life cycle
+        setInterval(gardenCycle, 50); // 20 cycles per second
+        
+        // Welcome message
+        console.log('%c🌱 PLASMA - First Computational Garden', 'color: #4fc3f7; font-size: 20px; font-weight: bold;');
+        console.log('%cThe garden is alive. Observe. Cultivate. Be amazed.', 'color: #81c784; font-size: 14px;');
+        console.log('%cEach cell carries within it the potential for the unexpected.', 'color: #ffeb3b; font-size: 12px; font-style: italic;');
+    </script>
+</body>
+</html>
